@@ -1,4 +1,4 @@
-# Laravel 12 Authorize.Net Payment Gateway Integration
+# PHP_Laravel12_Integrate_Authorizen.NET_Payment_Gateway
 
 A complete implementation of the Authorize.Net payment gateway in **Laravel 12**, using **sandbox (test) credentials** for safe testing. This project demonstrates how to process credit card payments without relying on external SDKs, using direct API requests.
 
