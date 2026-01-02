@@ -1,59 +1,333 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# PHP_Laravel12_Integrate_Authorizen.NET_Payment_Gateway
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+A complete implementation of the Authorize.Net payment gateway in **Laravel 12**, using **sandbox (test) credentials** for safe testing. This project demonstrates how to process credit card payments without relying on external SDKs, using direct API requests.
 
-## About Laravel
+---
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+## Overview
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+This project shows how to integrate Authorize.Net into a Laravel 12 application with a clean service-based architecture. It supports full payment lifecycle operations such as charge, authorize, capture, refund, and void.
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+The implementation is suitable for:
 
-## Learning Laravel
+* Learning payment gateway integration
+* College or MCA projects
+* Real-world Laravel payment modules
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework. You can also check out [Laravel Learn](https://laravel.com/learn), where you will be guided through building a modern Laravel application.
+---
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+## Features
 
-## Laravel Sponsors
+* Complete Authorize.Net API integration
+* Sandbox testing with test credentials
+* Credit card operations:
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+  * Charge
+  * Authorize only
+  * Capture authorized payment
+  * Refund transaction
+  * Void transaction
+* Responsive payment form
+* Payment history tracking
+* Comprehensive error handling and logging
+* No external SDK dependency
+* Clean service-based architecture
 
-### Premium Partners
+---
 
-- **[Vehikl](https://vehikl.com)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Redberry](https://redberry.international/laravel-development)**
-- **[Active Logic](https://activelogic.com)**
+## Requirements
 
-## Contributing
+* PHP 8.1 or higher
+* Laravel 12.x
+* Composer
+* Guzzle HTTP Client
+* MySQL or compatible database
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+---
 
-## Code of Conduct
+## Installation
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+### Step 1: Clone the Repository
 
-## Security Vulnerabilities
+```
+git clone https://github.com/your-username/laravel-authnet.git
+cd laravel-authnet
+```
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+### Step 2: Install Dependencies
 
-## License
+```
+composer install
+```
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+### Step 3: Environment Setup
+
+```
+cp .env.example .env
+php artisan key:generate
+```
+
+### Step 4: Configure Authorize.Net Credentials
+
+Update the `.env` file:
+
+```
+AUTHORIZE_NET_API_LOGIN_ID=5KP3u95bQpv
+AUTHORIZE_NET_TRANSACTION_KEY=346HZ32z3fP4hTG2
+AUTHORIZE_NET_SIGNATURE_KEY=Simon
+AUTHORIZE_NET_MODE=sandbox
+
+AUTHORIZE_NET_SANDBOX_URL=https://apitest.authorize.net/xml/v1/request.api
+AUTHORIZE_NET_PRODUCTION_URL=https://api.authorize.net/xml/v1/request.api
+```
+
+These are **official sandbox credentials** provided by Authorize.Net for testing.
+
+---
+
+## Project Structure
+
+```
+app/
+├── Services/
+│   └── AuthorizeNetService.php
+├── Http/Controllers/
+│   └── PaymentController.php
+├── Providers/
+│   └── AuthorizeNetServiceProvider.php
+
+config/
+└── authorize.php
+
+resources/views/payment/
+├── form.blade.php
+├── success.blade.php
+└── history.blade.php
+
+routes/
+└── web.php
+```
+
+---
+
+## Running the Application
+
+```
+php artisan serve
+```
+
+Open the browser:
+
+```
+http://localhost:8000/payment
+```
+
+---
+
+## Test Credit Cards (Sandbox)
+
+Use the following card numbers for testing:
+
+* Visa: `4007000000027`
+* MasterCard: `5424000000000015`
+* American Express: `370000000000002`
+* Discover: `6011000000000012`
+* Visa Decline Test: `4222222222222`
+
+Expiration Date: Any future date (YYYY-MM)
+
+CVV: Any 3 or 4 digits
+
+---
+
+## Routes & Endpoints
+
+| Method | Endpoint         | Description          |
+| ------ | ---------------- | -------------------- |
+| GET    | /payment         | Show payment form    |
+| POST   | /payment/process | Process payment      |
+| GET    | /payment/success | Payment success page |
+| GET    | /payment/history | View payment history |
+
+---
+
+## Service Methods
+
+### Charge Credit Card
+
+```
+$service->chargeCreditCard([
+    'amount' => '10.00',
+    'card_number' => '4007000000027',
+    'exp_date' => '2025-12',
+    'cvv' => '123',
+]);
+```
+
+### Authorize Only
+
+```
+$service->authorizeCreditCard([...]);
+```
+
+### Capture Payment
+
+```
+$service->captureAuthorizedAmount($transactionId, $amount);
+```
+
+### Refund Transaction
+
+```
+$service->refundTransaction([
+    'transaction_id' => '123456',
+    'amount' => '10.00',
+    'last_4_digits' => '0027',
+    'exp_date' => '2025-12',
+]);
+```
+
+### Void Transaction
+
+```
+$service->voidTransaction($transactionId);
+```
+
+---
+
+## Configuration File
+
+`config/authorize.php`
+
+```
+return [
+    'api_login_id' => env('AUTHORIZE_NET_API_LOGIN_ID'),
+    'transaction_key' => env('AUTHORIZE_NET_TRANSACTION_KEY'),
+    'signature_key' => env('AUTHORIZE_NET_SIGNATURE_KEY'),
+    'mode' => env('AUTHORIZE_NET_MODE', 'sandbox'),
+
+    'urls' => [
+        'sandbox' => env('AUTHORIZE_NET_SANDBOX_URL'),
+        'production' => env('AUTHORIZE_NET_PRODUCTION_URL'),
+    ],
+
+    'timeout' => 30,
+    'verify_ssl' => true,
+];
+```
+
+---
+
+## Error Handling
+
+* Invalid card details
+* Transaction declined
+* API authentication failures
+* Network/API connection issues
+
+All errors are logged to:
+
+```
+storage/logs/laravel.log
+```
+
+---
+
+## Testing
+
+Run all tests:
+
+```
+php artisan test
+```
+
+Run specific test:
+
+```
+php artisan test tests/Unit/AuthorizeNetServiceTest.php
+```
+---
+## Screenshot
+<img width="1127" height="955" alt="image" src="https://github.com/user-attachments/assets/8c15e1b3-9e18-4a5d-be13-57711e853e0e" />
+<img width="1599" height="508" alt="image" src="https://github.com/user-attachments/assets/f9762ade-87d4-4083-aa5a-712cf92cb075" />
+
+
+---
+
+## Production Deployment Checklist
+
+* Replace sandbox credentials with live credentials
+* Set `AUTHORIZE_NET_MODE=production`
+* Enable HTTPS
+* Enable SSL verification
+* Add request rate limiting
+* Validate all inputs
+* Store transaction logs securely
+
+---
+
+## Security Best Practices
+
+* Never commit API credentials
+* Use environment variables
+* Use HTTPS only
+* Follow PCI DSS guidelines
+* Mask card numbers in logs
+* Implement fraud detection
+
+---
+
+## Troubleshooting
+
+### Invalid Credentials
+
+* Verify API Login ID and Transaction Key
+* Check sandbox vs production mode
+
+### Transaction Declined
+
+* Use valid test card numbers
+* Check expiration format (YYYY-MM)
+
+### Connection Errors
+
+* Verify API URL
+* Check firewall or proxy settings
+
+---
+
+## Sample API Response
+
+### Success
+
+```
+{
+  "success": true,
+  "message": "Transaction successful",
+  "transaction_id": "2230582181",
+  "auth_code": "E4W2H9"
+}
+```
+
+### Error
+
+```
+{
+  "success": false,
+  "message": "Invalid credit card number",
+  "error_code": "6"
+}
+```
+
+---
+
+## Roadmap
+
+* Recurring payments
+* Webhook support
+* Admin dashboard
+* Export transactions
+* Multi-currency support
+* Customer profiles
+
+---
