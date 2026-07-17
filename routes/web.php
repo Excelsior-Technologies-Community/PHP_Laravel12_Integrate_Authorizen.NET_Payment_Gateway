@@ -13,4 +13,7 @@ Route::prefix('payment')->name('payment.')->group(function () {
     Route::post('/process', [PaymentController::class, 'processPayment'])->name('process');
     Route::get('/success', [PaymentController::class, 'success'])->name('success');
     Route::get('/history', [PaymentController::class, 'history'])->name('history');
+    Route::get('/receipt', [PaymentController::class, 'receipt'])->name('receipt');
 });
+
+Route::get('/payment/test-connection', [PaymentController::class, 'testConnection']);

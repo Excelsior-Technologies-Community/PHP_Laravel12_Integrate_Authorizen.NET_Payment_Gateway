@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Services\AuthorizeNetService;
+use App\Models\Payment;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 
@@ -21,11 +22,11 @@ class PaymentController extends Controller
     public function showPaymentForm()
     {
         $testCards = $this->authorizeNet->getTestCards();
-        
+
         // Test connection to show status
         $connectionStatus = $this->authorizeNet->testConnection();
         $credentials = $this->authorizeNet->validateCredentials();
-        
+
         return view('payment.form', compact('testCards', 'connectionStatus', 'credentials'));
     }
 
@@ -56,14 +57,14 @@ class PaymentController extends Controller
                 ->with('error', 'Please fix the validation errors below.');
         }
 
-        // Test connection first
         $connectionStatus = $this->authorizeNet->testConnection();
+
         if (!$connectionStatus['connected']) {
-            return back()->with('error', 'Cannot connect to payment gateway. Please check credentials.')
+            return back()
+                ->with('error', 'Cannot connect to payment gateway. Please check credentials.')
                 ->withInput();
         }
 
-        // Prepare payment data
         $paymentData = [
             'amount' => $request->amount,
             'card_number' => $request->card_number,
@@ -82,39 +83,53 @@ class PaymentController extends Controller
             'description' => 'Payment for order',
         ];
 
-        // Process payment
         $result = $this->authorizeNet->chargeCreditCard($paymentData);
 
-        if ($result['success']) {
-            // Store transaction in session for demo
-            $transactions = session('transactions', []);
-            $transactions[] = [
-                'id' => $result['transaction_id'],
-                'amount' => $request->amount,
-                'status' => 'success',
-                'date' => now()->format('Y-m-d H:i:s'),
-                'card_last4' => substr($request->card_number, -4),
-                'auth_code' => $result['auth_code'] ?? '',
-            ];
-            session(['transactions' => $transactions]);
+if ($result['success']) {
 
-            return redirect()->route('payment.success')
+    $payment = Payment::create([
+        'transaction_id' => $result['transaction_id'],
+        'authorization_code' => $result['auth_code'] ?? null,
+        'invoice_number' => $paymentData['invoice_number'],
+        'customer_name' => $request->first_name . ' ' . $request->last_name,
+        'amount' => $request->amount,
+        'card_last4' => substr($request->card_number, -4),
+        'payment_status' => 'success',
+        'payment_date' => now(),
+    ]);
+
+
+    session([
+        'receipt' => [
+            'id' => $payment->transaction_id,
+            'transaction_id' => $payment->transaction_id,
+            'auth_code' => $payment->authorization_code,
+            'amount' => $payment->amount,
+            'date' => $payment->payment_date,
+            'card_last4' => $payment->card_last4,
+            'customer_name' => $payment->customer_name,
+            'invoice_number' => $payment->invoice_number,
+            'status' => 'success'
+        ]
+    ]);
+
+            return redirect()->route('payment.receipt')
                 ->with('success', 'Payment processed successfully!')
                 ->with('transaction_id', $result['transaction_id'])
                 ->with('auth_code', $result['auth_code'] ?? '')
                 ->with('amount', $request->amount);
         } else {
-            // Store failed transaction for demo
-            $transactions = session('transactions', []);
-            $transactions[] = [
-                'id' => 'FAILED-' . time(),
-                'amount' => $request->amount,
-                'status' => 'failed',
-                'date' => now()->format('Y-m-d H:i:s'),
-                'card_last4' => substr($request->card_number, -4),
-                'error' => $result['message'],
-            ];
-            session(['transactions' => $transactions]);
+
+Payment::create([
+    'transaction_id' => 'FAILED-' . time(),
+    'invoice_number' => $paymentData['invoice_number'],
+    'customer_name' => $request->first_name . ' ' . $request->last_name,
+    'amount' => $request->amount,
+    'card_last4' => substr($request->card_number, -4),
+    'payment_status' => 'failed',
+    'error_message' => $result['message'],
+    'payment_date' => now(),
+]);
 
             return back()
                 ->with('error', 'Payment failed: ' . $result['message'])
@@ -122,7 +137,6 @@ class PaymentController extends Controller
                 ->with('raw_error', $result['raw_response'] ?? null);
         }
     }
-
     /**
      * Show success page
      */
@@ -131,19 +145,63 @@ class PaymentController extends Controller
         if (!session('success')) {
             return redirect()->route('payment.form');
         }
-        
+
         return view('payment.success');
     }
 
+public function receipt()
+{
+    $receipt = session('receipt');
+
+    if (!$receipt) {
+        return redirect()->route('payment.form');
+    }
+
+    $receipt['merchant_name'] = 'Laravel Payment Store';
+
+    return view('payment.receipt', compact('receipt'));
+}
     /**
      * Show payment history from session
      */
-    public function history()
-    {
-        $transactions = session('transactions', []);
-        
-        return view('payment.history', compact('transactions'));
+public function history(Request $request)
+{
+    $transactions = Payment::query();
+
+
+    if ($request->search) {
+
+        $search = $request->search;
+
+        $transactions->where(function($query) use ($search){
+
+            $query->where('transaction_id','like',"%$search%")
+                  ->orWhere('card_last4','like',"%$search%");
+
+        });
+
     }
+
+
+    if ($request->status) {
+
+        $transactions->where(
+            'payment_status',
+            $request->status
+        );
+
+    }
+
+
+    $transactions = $transactions
+        ->latest()
+        ->get();
+
+
+    return view('payment.history', [
+        'transactions'=>$transactions
+    ]);
+}
 
     /**
      * Test payment gateway connection
@@ -152,7 +210,7 @@ class PaymentController extends Controller
     {
         $result = $this->authorizeNet->testConnection();
         $credentials = $this->authorizeNet->validateCredentials();
-        
+
         return response()->json([
             'connected' => $result['connected'],
             'credentials' => $credentials,
