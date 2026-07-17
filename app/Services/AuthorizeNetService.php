@@ -102,104 +102,99 @@ class AuthorizeNetService
     /**
      * Create payload for charge transaction (FIXED)
      */
-    protected function createChargePayload(array $data)
-    {
-        // Format expiration date properly
-        $expDate = $data['exp_date'];
-        
-        return [
-            "createTransactionRequest" => [
-                "merchantAuthentication" => [
-                    "name" => $this->apiLoginId,
-                    "transactionKey" => $this->transactionKey
-                ],
-                "refId" => "ref" . time(),
-                "transactionRequest" => [
-                    "transactionType" => "authCaptureTransaction",
-                    "amount" => number_format($data['amount'], 2, '.', ''),
-                    "payment" => [
-                        "creditCard" => [
-                            "cardNumber" => str_replace(' ', '', $data['card_number']),
-                            "expirationDate" => $expDate,
-                            "cardCode" => $data['cvv'] ?? ''
-                        ]
-                    ],
-                    "billTo" => [
-                        "firstName" => $data['billing_address']['firstName'] ?? 'John',
-                        "lastName" => $data['billing_address']['lastName'] ?? 'Doe',
-                        "address" => $data['billing_address']['address'] ?? '123 Main St',
-                        "city" => $data['billing_address']['city'] ?? 'New York',
-                        "state" => $data['billing_address']['state'] ?? 'NY',
-                        "zip" => $data['billing_address']['zip'] ?? '10001',
-                        "country" => $data['billing_address']['country'] ?? 'USA'
-                    ],
-                    "order" => [
-                        "invoiceNumber" => $data['invoice_number'] ?? 'INV-' . time(),
-                        "description" => $data['description'] ?? 'Payment'
-                    ]
-                ]
-            ]
-        ];
-    }
+protected function createChargePayload(array $data)
+{
+    return [
+        "createTransactionRequest" => [
+            "merchantAuthentication" => [
+                "name" => $this->apiLoginId,
+                "transactionKey" => $this->transactionKey,
+            ],
 
+            "refId" => "REF" . time(),
+
+            "transactionRequest" => [
+
+                "transactionType" => "authCaptureTransaction",
+
+                "amount" => number_format($data['amount'], 2, '.', ''),
+
+                "payment" => [
+                    "creditCard" => [
+                        "cardNumber" => str_replace(' ', '', $data['card_number']),
+                        "expirationDate" => $data['exp_date'],
+                        "cardCode" => $data['cvv'],
+                    ]
+                ],
+
+                "billTo" => [
+                    "firstName" => $data['billing_address']['firstName'],
+                    "lastName"  => $data['billing_address']['lastName'],
+                    "address"   => $data['billing_address']['address'],
+                    "city"      => $data['billing_address']['city'],
+                    "state"     => $data['billing_address']['state'],
+                    "zip"       => $data['billing_address']['zip'],
+                    "country"   => $data['billing_address']['country'],
+                ]
+
+            ]
+        ]
+    ];
+}
     /**
      * Make API request to Authorize.Net (FIXED)
      */
-    protected function makeRequest(array $payload)
-    {
-        try {
-            Log::info('Authorize.Net Request Payload:', $payload);
-            
-            $response = $this->client->post($this->endpoint, [
-                'headers' => [
-                    'Content-Type' => 'application/json',
-                    'Accept' => 'application/json',
-                ],
-                'json' => $payload,
-                'http_errors' => false, // Don't throw exceptions on HTTP errors
-            ]);
+ protected function makeRequest(array $payload)
+{
+    try {
 
-            $statusCode = $response->getStatusCode();
-            $responseBody = $response->getBody()->getContents();
-            
-            Log::info('Authorize.Net Response Status: ' . $statusCode);
-            Log::info('Authorize.Net Response Body:', ['body' => $responseBody]);
+        $jsonPayload = json_encode($payload, JSON_UNESCAPED_SLASHES);
 
-            $responseData = json_decode($responseBody, true);
+        Log::info('========== AUTHORIZE.NET REQUEST ==========');
+        Log::info($jsonPayload);
 
-            if ($statusCode !== 200) {
-                throw new \Exception("HTTP Error {$statusCode}: Invalid response from payment gateway");
-            }
+        $response = $this->client->post($this->endpoint, [
+            'headers' => [
+                'Content-Type' => 'application/json',
+                'Accept' => 'application/json',
+            ],
+            'body' => $jsonPayload,
+            'http_errors' => false,
+        ]);
 
-            if (empty($responseData)) {
-                throw new \Exception("Empty response from payment gateway");
-            }
+        $statusCode = $response->getStatusCode();
 
-            return $this->parseResponse($responseData);
+        $responseBody = $response->getBody()->getContents();
 
-        } catch (\GuzzleHttp\Exception\RequestException $e) {
-            $errorMessage = $e->getMessage();
-            if ($e->hasResponse()) {
-                $errorMessage .= ' - Response: ' . $e->getResponse()->getBody()->getContents();
-            }
-            Log::error('Authorize.Net Request Exception: ' . $errorMessage);
-            
-            return [
-                'success' => false,
-                'message' => 'Network error: ' . $errorMessage,
-                'transaction_id' => null
-            ];
-            
-        } catch (\Exception $e) {
-            Log::error('Authorize.Net General Error: ' . $e->getMessage());
-            
-            return [
-                'success' => false,
-                'message' => 'Payment gateway error: ' . $e->getMessage(),
-                'transaction_id' => null
-            ];
+        // Remove UTF-8 BOM if present
+        $responseBody = preg_replace('/^\xEF\xBB\xBF/', '', $responseBody);
+
+        Log::info('========== AUTHORIZE.NET RESPONSE ==========');
+        Log::info($responseBody);
+
+        $responseData = json_decode($responseBody, true);
+
+        if (json_last_error() !== JSON_ERROR_NONE) {
+            throw new \Exception('Invalid JSON Response: ' . json_last_error_msg());
         }
+
+        if ($statusCode != 200) {
+            throw new \Exception("HTTP Error {$statusCode}");
+        }
+
+        return $this->parseResponse($responseData);
+
+    } catch (\Exception $e) {
+
+        Log::error('Authorize.Net Error: '.$e->getMessage());
+
+        return [
+            'success' => false,
+            'message' => $e->getMessage(),
+            'transaction_id' => null,
+        ];
     }
+}
 
     /**
      * Parse API response (FIXED)
@@ -263,43 +258,58 @@ class AuthorizeNetService
     /**
      * Test API connection
      */
-    public function testConnection()
-    {
-        try {
-            $payload = [
-                "authenticateTestRequest" => [
-                    "merchantAuthentication" => [
-                        "name" => $this->apiLoginId,
-                        "transactionKey" => $this->transactionKey
-                    ]
+public function testConnection()
+{
+    try {
+
+        $payload = [
+            "authenticateTestRequest" => [
+                "merchantAuthentication" => [
+                    "name" => $this->apiLoginId,
+                    "transactionKey" => $this->transactionKey
                 ]
-            ];
+            ]
+        ];
 
-            $response = $this->client->post($this->endpoint, [
-                'headers' => [
-                    'Content-Type' => 'application/json',
-                    'Accept' => 'application/json',
-                ],
-                'json' => $payload,
-                'http_errors' => false,
-            ]);
+        $response = $this->client->post($this->endpoint, [
+            'headers' => [
+                'Content-Type' => 'application/json',
+                'Accept' => 'application/json',
+            ],
+            'body' => json_encode($payload),
+            'http_errors' => false,
+        ]);
 
-            $responseData = json_decode($response->getBody()->getContents(), true);
-            
-            return [
-                'connected' => isset($responseData['messages']['resultCode']) && 
-                               $responseData['messages']['resultCode'] === 'Ok',
-                'response' => $responseData,
-                'status_code' => $response->getStatusCode()
-            ];
+        $responseBody = $response->getBody()->getContents();
 
-        } catch (\Exception $e) {
-            return [
-                'connected' => false,
-                'error' => $e->getMessage()
-            ];
-        }
+        // Remove UTF-8 BOM if present
+        $responseBody = preg_replace('/^\xEF\xBB\xBF/', '', $responseBody);
+
+        Log::info('Authorize.Net Test Connection');
+        Log::info($responseBody);
+
+        $responseData = json_decode($responseBody, true);
+
+        return [
+            'connected' => isset($responseData['messages']['resultCode'])
+                && $responseData['messages']['resultCode'] === 'Ok',
+
+            'response' => $responseData,
+            'status_code' => $response->getStatusCode(),
+        ];
+
+    } catch (\Exception $e) {
+
+        Log::error('Authorize.Net Test Connection Error: '.$e->getMessage());
+
+        return [
+            'connected' => false,
+            'response' => null,
+            'status_code' => 500,
+            'error' => $e->getMessage(),
+        ];
     }
+}
 
     /**
      * Get test credit card numbers for sandbox
