@@ -1,43 +1,54 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
+
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <meta name="viewport"
+        content="width=device-width, initial-scale=1.0">
+
     <title>Payment History</title>
 
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+        rel="stylesheet">
 
     <style>
-        body{
-            background:#f8fafc;
+        body {
+            background: #f4f6f9;
         }
 
-        .card{
-            border:none;
-            border-radius:15px;
-            box-shadow:0 10px 30px rgba(0,0,0,.08);
+        .card {
+            border: none;
+            border-radius: 15px;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, .08);
         }
 
-        .table th{
-            background:#0d6efd;
-            color:#fff;
-            vertical-align:middle;
+        .stat-card {
+            color: #fff;
+            border-radius: 15px;
+            padding: 20px;
         }
 
-        .badge{
-            font-size:.85rem;
+        .table th {
+            background: #0d6efd;
+            color: #fff;
+            vertical-align: middle;
         }
 
-        code{
-            color:#0d6efd;
-            font-size:14px;
+        .badge {
+            font-size: .85rem;
         }
 
-        .filter-box{
-            background:#f8fafc;
-            padding:20px;
-            border-radius:12px;
-            margin-bottom:20px;
+        .filter-box {
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 25px;
+        }
+
+        .table td {
+            vertical-align: middle;
         }
     </style>
 
@@ -45,195 +56,304 @@
 
 <body>
 
+    <div class="container py-5">
 
-<div class="container py-5">
+        @php
+
+        $totalPayments = \App\Models\Payment::count();
+
+        $successPayments = \App\Models\Payment::where('payment_status','success')->count();
+
+        $failedPayments = \App\Models\Payment::where('payment_status','failed')->count();
+
+        $totalRevenue = \App\Models\Payment::where('payment_status','success')->sum('amount');
+
+        @endphp
 
 
-    <div class="card">
+        {{-- Dashboard Cards --}}
 
+        <div class="row mb-4">
 
-        <div class="card-header bg-white d-flex justify-content-between align-items-center">
+            <div class="col-md-3">
 
-            <h3 class="mb-0">
-                💳 Payment History
-            </h3>
+                <div class="stat-card bg-primary">
 
+                    <h6>Total Payments</h6>
 
-            <a href="{{ route('payment.form') }}" class="btn btn-primary">
-                New Payment
-            </a>
+                    <h2>{{ $totalPayments }}</h2>
 
+                </div>
+
+            </div>
+
+            <div class="col-md-3">
+
+                <div class="stat-card bg-success">
+
+                    <h6>Success</h6>
+
+                    <h2>{{ $successPayments }}</h2>
+
+                </div>
+
+            </div>
+
+            <div class="col-md-3">
+
+                <div class="stat-card bg-danger">
+
+                    <h6>Failed</h6>
+
+                    <h2>{{ $failedPayments }}</h2>
+
+                </div>
+
+            </div>
+
+            <div class="col-md-3">
+
+                <div class="stat-card bg-dark">
+
+                    <h6>Total Revenue</h6>
+
+                    <h2>${{ number_format($totalRevenue,2) }}</h2>
+
+                </div>
+
+            </div>
 
         </div>
 
 
 
-        <div class="card-body">
+        <div class="card">
 
+            <div class="card-header bg-white d-flex justify-content-between align-items-center">
 
-            <div class="alert alert-success">
+                <h3 class="mb-0">
 
-                <strong>Database Storage:</strong>
+                    Payment History
 
-                All Authorize.Net transactions are stored securely in database.
+                </h3>
 
-            </div>
+                <div>
 
+                    <a href="{{ route('payment.export') }}"
+                        class="btn btn-success">
 
+                        Export CSV
 
-            <div class="filter-box">
+                    </a>
 
+                    <a href="{{ route('payment.form') }}"
+                        class="btn btn-primary">
 
-                <form method="GET" action="{{ route('payment.history') }}" class="row g-3">
+                        New Payment
 
+                    </a>
 
-                    <div class="col-md-5">
-
-                        <input 
-                            type="text"
-                            name="search"
-                            class="form-control"
-                            placeholder="Search Transaction ID or Card Last 4"
-                            value="{{ request('search') }}"
-                        >
-
-                    </div>
-
-
-
-                    <div class="col-md-3">
-
-                        <select name="status" class="form-select">
-
-
-                            <option value="">
-                                All Status
-                            </option>
-
-
-                            <option value="success"
-                                {{ request('status') == 'success' ? 'selected' : '' }}>
-                                Success
-                            </option>
-
-
-                            <option value="failed"
-                                {{ request('status') == 'failed' ? 'selected' : '' }}>
-                                Failed
-                            </option>
-
-
-                        </select>
-
-
-                    </div>
-
-
-
-                    <div class="col-md-4">
-
-
-                        <button class="btn btn-primary">
-
-                            🔍 Search
-
-                        </button>
-
-
-                        <a href="{{ route('payment.history') }}" 
-                           class="btn btn-secondary">
-
-                            Reset
-
-                        </a>
-
-
-                    </div>
-
-
-                </form>
-
+                </div>
 
             </div>
 
 
 
+            <div class="card-body">
 
+                @if(session('success'))
 
-            <div class="table-responsive">
+                <div class="alert alert-success">
 
+                    {{ session('success') }}
 
-                <table class="table table-bordered table-hover align-middle">
+                </div>
 
+                @endif
 
-                    <thead>
+                @if(session('error'))
 
+                <div class="alert alert-danger">
 
-                    <tr>
+                    {{ session('error') }}
 
-                        <th>Transaction ID</th>
-                        <th>Customer</th>
-                        <th>Date</th>
-                        <th>Amount</th>
-                        <th>Status</th>
-                        <th>Card</th>
-                        <th>Auth Code / Error</th>
+                </div>
 
-                    </tr>
-
-
-                    </thead>
+                @endif
 
 
 
-                    <tbody>
+                <div class="filter-box">
+
+                    <form method="GET"
+                        action="{{ route('payment.history') }}">
+
+                        <div class="row g-3">
+
+                            <div class="col-md-4">
+
+                                <input
+                                    type="text"
+                                    name="search"
+                                    class="form-control"
+                                    placeholder="Customer / Transaction / Invoice / Amount"
+                                    value="{{ request('search') }}">
+
+                            </div>
+
+                            <div class="col-md-2">
+
+                                <select
+                                    name="status"
+                                    class="form-select">
+
+                                    <option value="">All Status</option>
+
+                                    <option value="success"
+                                        {{ request('status')=='success' ? 'selected':'' }}>
+                                        Success
+                                    </option>
+
+                                    <option value="failed"
+                                        {{ request('status')=='failed' ? 'selected':'' }}>
+                                        Failed
+                                    </option>
+
+                                </select>
+
+                            </div>
+
+                            <div class="col-md-2">
+
+                                <input
+                                    type="date"
+                                    name="from_date"
+                                    class="form-control"
+                                    value="{{ request('from_date') }}">
+
+                            </div>
+
+                            <div class="col-md-2">
+
+                                <input
+                                    type="date"
+                                    name="to_date"
+                                    class="form-control"
+                                    value="{{ request('to_date') }}">
+
+                            </div>
+
+                            <div class="col-md-2 d-grid">
+
+                                <button
+                                    class="btn btn-primary">
+
+                                    Search
+
+                                </button>
+
+                            </div>
+
+                            <div class="col-md-12">
+
+                                <a href="{{ route('payment.history') }}"
+                                    class="btn btn-secondary">
+
+                                    Reset
+
+                                </a>
+
+                            </div>
+
+                        </div>
+
+                    </form>
+
+                </div>
 
 
 
-                    @forelse($transactions as $transaction)
+                <div class="table-responsive">
 
+                    <table class="table table-bordered table-hover">
 
-                        <tr>
+                        <thead>
 
+                            <tr>
 
-                            <td>
+                                <th>#</th>
 
-                                <code>
-                                    {{ $transaction->transaction_id }}
-                                </code>
+                                <th>Transaction ID</th>
 
-                            </td>
+                                <th>Invoice</th>
 
+                                <th>Customer</th>
 
-                            <td>
+                                <th>Amount</th>
 
-                                {{ $transaction->customer_name }}
+                                <th>Status</th>
 
-                            </td>
+                                <th>Card</th>
 
+                                <th>Date</th>
 
+                                <th>Auth / Error</th>
 
-                            <td>
+                                <th width="220">
 
-                                {{ $transaction->payment_date?->format('Y-m-d H:i:s') }}
+                                    Action
 
-                            </td>
+                                </th>
 
+                            </tr>
 
+                        </thead>
 
-                            <td>
+                        <tbody>
 
-                                ${{ number_format($transaction->amount,2) }}
+                            @forelse($transactions as $transaction)
 
-                            </td>
+                            <tr>
 
+                                <td>
+                                    {{ $loop->iteration + (($transactions->currentPage() - 1) * $transactions->perPage()) }}
+                                </td>
 
+                                <td>
 
-                            <td>
+                                    <span class="fw-bold text-primary">
 
+                                        {{ $transaction->transaction_id }}
 
-                                @if($transaction->payment_status == 'success')
+                                    </span>
 
+                                </td>
+
+                                <td>
+
+                                    {{ $transaction->invoice_number }}
+
+                                </td>
+
+                                <td>
+
+                                    {{ $transaction->customer_name }}
+
+                                </td>
+
+                                <td>
+
+                                    <strong>
+
+                                        ${{ number_format($transaction->amount,2) }}
+
+                                    </strong>
+
+                                </td>
+
+                                <td>
+
+                                    @if($transaction->payment_status=='success')
 
                                     <span class="badge bg-success">
 
@@ -241,9 +361,7 @@
 
                                     </span>
 
-
-                                @else
-
+                                    @else
 
                                     <span class="badge bg-danger">
 
@@ -251,35 +369,33 @@
 
                                     </span>
 
+                                    @endif
 
-                                @endif
+                                </td>
 
+                                <td>
 
-                            </td>
+                                    **** {{ $transaction->card_last4 }}
 
+                                </td>
 
+                                <td>
 
-                            <td>
+                                    {{ optional($transaction->payment_date)->format('d M Y H:i') }}
 
+                                </td>
 
-                                **** {{ $transaction->card_last4 ?? 'N/A' }}
+                                <td>
 
+                                    @if($transaction->payment_status=='success')
 
-                            </td>
+                                    <span class="text-success">
 
+                                        {{ $transaction->authorization_code ?? '-' }}
 
+                                    </span>
 
-                            <td>
-
-
-                                @if($transaction->payment_status == 'success')
-
-
-                                    {{ $transaction->authorization_code ?? '-' }}
-
-
-                                @else
-
+                                    @else
 
                                     <span class="text-danger">
 
@@ -287,92 +403,200 @@
 
                                     </span>
 
+                                    @endif
 
-                                @endif
+                                </td>
 
+                                <td>
 
-                            </td>
+                                    <div class="d-flex flex-wrap gap-2">
 
+                                        @if($transaction->payment_status=='success')
 
+                                        <form method="POST"
+                                            action="{{ route('payment.failed',$transaction->id) }}">
 
-                        </tr>
+                                            @csrf
 
+                                            @method('PUT')
 
+                                            <button
+                                                class="btn btn-warning btn-sm">
 
-                    @empty
+                                                Mark Failed
 
+                                            </button>
 
+                                        </form>
 
-                        <tr>
+                                        @else
 
+                                        <form method="POST"
+                                            action="{{ route('payment.success.status',$transaction->id) }}">
 
-                            <td colspan="7" class="text-center py-5">
+                                            @csrf
 
+                                            @method('PUT')
 
-                                <h5>
-                                    No payment history found.
-                                </h5>
+                                            <button
+                                                class="btn btn-success btn-sm">
 
+                                                Mark Success
 
-                                <p class="text-muted mb-3">
+                                            </button>
 
-                                    Make your first payment to see transactions.
+                                        </form>
 
-                                </p>
+                                        @endif
 
+                                        <form
+                                            action="{{ route('payment.destroy',$transaction->id) }}"
+                                            method="POST"
+                                            onsubmit="return confirm('Delete this payment?')">
 
-                                <a href="{{ route('payment.form') }}" 
-                                   class="btn btn-primary">
+                                            @csrf
 
-                                    Make Payment
+                                            @method('DELETE')
 
-                                </a>
+                                            <button
+                                                class="btn btn-danger btn-sm">
 
+                                                Delete
 
-                            </td>
+                                            </button>
 
+                                        </form>
 
-                        </tr>
+                                    </div>
 
+                                </td>
 
+                            </tr>
 
-                    @endforelse
+                            @empty
 
+                            <tr>
 
+                                <td colspan="10" class="text-center py-5">
 
-                    </tbody>
+                                    <h4 class="text-muted">
 
+                                        No Payments Found
 
-                </table>
+                                    </h4>
 
+                                    <p class="text-muted">
+
+                                        No payment records match your search criteria.
+
+                                    </p>
+
+                                    <a href="{{ route('payment.form') }}"
+                                        class="btn btn-primary">
+
+                                        Make New Payment
+
+                                    </a>
+
+                                </td>
+
+                            </tr>
+
+                            @endforelse
+
+                        </tbody>
+
+                    </table>
+
+                </div>
+
+                @if($transactions->count())
+
+                <div class="row mt-4">
+
+                    <div class="col-md-6">
+
+                        <p class="text-muted mb-0">
+
+                            Showing
+
+                            <strong>{{ $transactions->firstItem() }}</strong>
+
+                            to
+
+                            <strong>{{ $transactions->lastItem() }}</strong>
+
+                            of
+
+                            <strong>{{ $transactions->total() }}</strong>
+
+                            payments
+
+                        </p>
+
+                    </div>
+
+                    <div class="col-md-6 d-flex justify-content-end">
+
+                        @if ($transactions->lastPage() > 1)
+
+                        <nav>
+
+                            <ul class="pagination justify-content-end">
+
+                                @for ($page = 1; $page <= $transactions->lastPage(); $page++)
+
+                                    <li class="page-item {{ $transactions->currentPage() == $page ? 'active' : '' }}">
+
+                                        <a class="page-link"
+                                            href="{{ $transactions->url($page) }}">
+
+                                            {{ $page }}
+
+                                        </a>
+
+                                    </li>
+
+                                    @endfor
+
+                            </ul>
+
+                        </nav>
+
+                        @endif
+
+                    </div>
+
+                </div>
+
+                @endif
 
             </div>
 
+            <div class="card-footer bg-white d-flex justify-content-between">
+
+                <a href="{{ route('payment.form') }}"
+                    class="btn btn-secondary">
+
+                    ← Back to Payment Form
+
+                </a>
+
+                <a href="{{ route('payment.dashboard') }}"
+                    class="btn btn-dark">
+
+                    Payment Dashboard
+
+                </a>
+
+            </div>
 
         </div>
-
-
-
-        <div class="card-footer bg-white">
-
-
-            <a href="{{ route('payment.form') }}" 
-               class="btn btn-outline-secondary">
-
-                ← Back to Payment Form
-
-            </a>
-
-
-        </div>
-
-
 
     </div>
 
-
-</div>  
-
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
 </body>
+
 </html>
